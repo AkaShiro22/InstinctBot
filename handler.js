@@ -28,8 +28,6 @@ module.exports = {
         if (user) {
             if (!isNumber(user.healt)) user.healt = 0
             if (!isNumber(user.level)) user.level = 0
-			if (!isNumber(user.call)) user.call = 0
-			if (!user.role) user.role = 'Bronze'
             if (!isNumber(user.exp)) user.exp = 0
             if (!isNumber(user.limit)) user.limit = 10
             if (!isNumber(user.lastclaim)) user.lastclaim = 0
@@ -57,13 +55,12 @@ module.exports = {
             if (!isNumber(user.anjing)) user.anjing = 0
             if (!isNumber(user.anjinglastclaim)) user.anjinglastclaim = 0
 
-            if (!'Banneduser' in user) user.Banneduser = false
-            if (!'BannedReason' in user) user.BannedReason = ''
+            if (!'banned' in user) user.banned = false
+            if (!'bannedReason' in user) user.bannedReason = ''
             if (!isNumber(user.warn)) user.warn = 0
 
             if (!isNumber(user.afk)) user.afk = -1
-            if (!('afkReason' in user)) user.afkReason = ''
-			if (!('banned' in user)) user.banned = false
+            if (!'afkReason' in user) user.afkReason = ''
         
             if (!isNumber(user.anakkucing)) user.anakkucing = 0
             if (!isNumber(user.anakkuda)) user.anakkuda = 0
@@ -98,14 +95,12 @@ module.exports = {
                 if (!isNumber(user.age)) user.age = -1
                 if (!isNumber(user.regTime)) user.regTime = -1
             }
-            if (!('autolevelup' in user)) user.autolevelup = false
-			if (!isNumber(user.pc)) user.pc = 0
-			if (!isNumber(user.warning)) user.warning = 0
-        } else global.db.data.users[m.sender] = {
+            if (!('autolevelup' in user)) user.autolevelup = true
+			if (!('ah' in user)) user.ah = []
+            if (!('mission' in user)) user.mission = {}
+        } else global.DATABASE._data.users[m.sender] = {
             healt: 100,
             level: 0,
-			call: 0,
-			role: 'Bronze',
             exp: 0,
             limit: 10,
             lastclaim: 0,
@@ -133,7 +128,6 @@ module.exports = {
             warn: 0,
             afk: -1,
             afkReason: '',
-			banned: false,
             anakkucing: 0,
             anakkuda: 0,
             anakrubah: 0,
@@ -162,9 +156,9 @@ module.exports = {
             name: this.getName(m.sender),
             age: -1,
             regTime: -1,
-            autolevelup: false,
-			pc: 0,
-			warning: 0,
+            autolevelup: true,
+			ah: [],
+            mission: {},
         }
 
         let chat = global.DATABASE._data.chats[m.chat]
@@ -226,10 +220,7 @@ module.exports = {
       if (opts['nyimak']) return
       if (!m.fromMe && opts['self']) return
       if (m.chat == 'status@broadcast') return
-	  if (opts['pconly'] && m.chat.endsWith('g.us')) return
-      if (opts['gconly'] && !m.chat.endsWith('g.us')) return
-      if (opts['swonly'] && m.chat !== 'status@broadcast') return
-      if (typeof m.text !== 'string') m.text = ''
+	  if (typeof m.text !== 'string') m.text = ''
       for (let name in global.plugins) {
         let plugin = global.plugins[name]
         if (!plugin) continue
@@ -263,7 +254,7 @@ module.exports = {
       let bot = m.isGroup ? participants.find(u => u.jid == this.user.jid) : {} // Your Data
       let isAdmin = user.isAdmin || user.isSuperAdmin || false // Is User Admin?
       let isBotAdmin = bot.isAdmin || bot.isSuperAdmin || false // Are you Admin?
-      let DevMode = (global.DeveloperMode.toLowerCase() == 'true') || false
+      let DevMode = /true/i.test(global.DeveloperMode.toLowerCase())
       for (let name in global.plugins) {
         let plugin = global.plugins[name]
         if (!plugin) continue
@@ -323,8 +314,16 @@ module.exports = {
           if (m.chat in global.DATABASE._data.chats || m.sender in global.DATABASE._data.users) {
             let chat = global.DATABASE._data.chats[m.chat]
             let user = global.DATABASE._data.users[m.sender]
-            if (name != 'unbanchat.js' && chat && chat.isBanned) return // Except this
-            if (name != 'unbanuser.js' && user && user.Banneduser) return
+            if (!['unbanchat.js', 'link.js', 'pengumuman.js', 'creator.js'].includes(name) && chat && chat.isBanned && !isROwner) return // Except this
+            if (!['unbanuser.js', 'inv.js', 'link.js', 'creator.js', 'profile.js'].includes(name) && user && user.banned && !isROwner) {
+              if (!opts['msgifbanned']) m.reply(`*ANDA TERBANNED* ${user.bannedReason ? `\nKarena *${user.bannedReason}*` : ''}
+Hubungi: 
+${global.owner.map((v, i) => '*Owner ' + (i + 1) + ':* wa.me/' + v).join('\n') + '\n\n' + global.mods.map((v, i) => '*Moderator ' + (i + 1) + ':* wa.me/' + v).join('\n')}
+Kuy join group Official *${conn.getName(this.user.jid)}*: 
+${(global.linkGC).map((v, i) => '*Group ' + (i + 1) + '*\n' + v).join`\n\n`}
+`.trim())
+              return
+            }
           }
           if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { // Both Owner
             fail('owner', m, this)
@@ -402,7 +401,7 @@ module.exports = {
             m.error = e
             console.error(e)
             if (e) {
-              let text = util.format(e.message)
+              let text = util.format(e)
               for (let key of Object.values(global.APIKeys))
                 text = text.replace(new RegExp(key, 'g'), 'apikey')
                 if (DevMode && text.length > 100) {
@@ -463,7 +462,6 @@ module.exports = {
         console.log(m, m.quoted, e)
       }
 	  
-	  //Auto read
       if (opts['autoread']) await this.chatRead(m.chat)
     }
   },
@@ -481,8 +479,8 @@ module.exports = {
               pp = await this.getProfilePicture(user)
             } catch (e) {
             } finally {
-              text = (action === 'add' ? (chat.sWelcome || this.welcome || conn.welcome || 'Welcome, @user!').replace('@subject', this.getName(jid)).replace('@desc', groupMetadata.desc) :
-                (chat.sBye || this.bye || conn.bye || 'Sampai jumpa, @user!')).replace(/@user/g, '@' + user.split`@`[0])
+              text = (action === 'add' ? (chat.sWelcome || this.welcome || conn.welcome || 'Welcome, @user!').replace('@subject', await this.getName(jid)).replace('@desc', groupMetadata.desc) :
+                (chat.sBye || this.bye || conn.bye || 'Bye, @user!')).replace('@user', '@' + user.split('@')[0])
 				let wel = `https://hardianto-chan.herokuapp.com/api/tools/welcomer2?name=${encodeURIComponent(this.getName(user))}&descriminator=${user.split(`@`)[0].substr(-5)}&totalmem=${encodeURIComponent(groupMetadata.participants.length)}&namegb=${encodeURIComponent(this.getName(jid))}&ppuser=${pp}&background=https://i.ibb.co/KhtRxwZ/dark.png&apikey=hardianto`
 				let lea = `https://hardianto-chan.herokuapp.com/api/tools/leave2?name=${encodeURIComponent(this.getName(user))}&descriminator=${user.split(`@`)[0].substr(-5)}&totalmem=${encodeURIComponent(groupMetadata.participants.length)}&namegb= ${encodeURIComponent(this.getName(jid))}&ppuser=${pp}&background=https://i.ibb.co/KhtRxwZ/dark.png&apikey=hardianto`
               this.sendFile(jid, action === 'add' ? wel : lea, 'pp.jpg', text, null, false, {
@@ -526,33 +524,34 @@ Untuk mematikan fitur ini, ketik
   },
     async onCall(json) {
     let { from } = json[2][0][1]
-    let users = global.db.data.users
+    let ids = 'call-id' in json[2][0][2][0][1] ? Object.entries(json[2][0][2][0][1]) : []
+    let id = ids[0][1]
+    let isOffer = json[2][0][2][0][0] == 'offer' || false
+    let users = global.DATABASE.data.users
     let user = users[from] || {}
     if (user.whitelist) return
-    if (!global.db.data.anticall) return
     switch (this.callWhitelistMode) {
       case 'mycontact':
         if (from in this.contacts && 'short' in this.contacts[from])
-          return
+        return
         break
     }
-    user.call += 1
-    await this.reply(from, `Jika kamu menelepon lebih dari 5, kamu akan diblokir.\n\n${user.call} / 5`, null)
-    if (user.call == 5) {
-      await this.blockUser(from, 'add')
-      user.call = 0
+
+    if (from && id && isOffer && json[2][0]) {
+      var tag = this.generateMessageTag()
+      var NodePayload = ["action", "call", ["call", {
+        "from": this.user.jid,
+        "to": from,
+        "id": tag
+      }, [["reject", { 
+        "call-id": id, 
+        "call-creator": from, 
+        "count": "0" 
+      }, null]]]]
+
+      await this.send(`${tag},${JSON.stringify(NodePayload)}`)
     }
-
-
-  },
-  async GroupUpdate({ jid, desc, descId, descTime, descOwner }) {
-    if (!global.db.data.chats[jid].descUpdate) return
-    let caption = `
-@${descOwner.split`@`[0]} telah mengubah deskripsi grup.
-${desc}
-ketik *.off desc* untuk mematikan pesan ini
-    `.trim()
-    this.sendButton(jid, caption, '', 'MATIKAN DESKRIPSI', ',off desc', { contextInfo: { mentionedJid: this.parseMention(caption) } })
+    await this.sendMessage(from, 'Maaf, Tolong jangan telfon BOT!!', MessageType.extendedText)
   }
 }
 
