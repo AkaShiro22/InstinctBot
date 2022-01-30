@@ -3,7 +3,7 @@
 [![Header](https://avatars.githubusercontent.com/AkaShiro22 "Header")](https://akashiro22.dev/)
 
 # Hello, folks! <img src="https://raw.githubusercontent.com/MartinHeinz/MartinHeinz/master/wave.gif" width="30px">
-My name is AkaShiro and I'm a software developer/DevOps engineer. I'm from Indonesia, living in Jakarta and currently working at MNC. You can find me on [![Twitter][1.2]][1],  or on [![LinkedIn][3.2]][3].
+My name is AkaShiro and I'm a software developer/DevOps engineer. I'm from Indonesia, living in Jakarta and currently working at 💲💲💲. You can find me on [![Twitter][1.2]][1],  or on [![LinkedIn][3.2]][3].
 ## &#x270d; Blog & Writing
 Apart from coding, I also maintain a blog - you can find my articles on my website at [akashiro22](https://test.com/) as well as on [Medium](https://test.com) and [DEV.to](https://test.com).
 ## 🔧 Technologies & Tools
